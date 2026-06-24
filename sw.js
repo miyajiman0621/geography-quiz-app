@@ -1,4 +1,4 @@
-const CACHE = 'geography-quiz-app-v11-google-analytics';
+const CACHE = 'geography-quiz-app-v12-hero-tap-area';
 const ASSETS = [
   './',
   './index.html',

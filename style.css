@@ -52,12 +52,12 @@ h1{margin:0; font-size:24px; letter-spacing:.02em; overflow-wrap:anywhere}
 .screen{padding:16px 16px 96px; flex:1}
 .card{background:var(--card); border:1px solid var(--line); border-radius:22px; box-shadow:var(--shadow); padding:18px; margin-bottom:14px}
 .hero{text-align:center; overflow:hidden; position:relative}
-.hero:after{content:""; position:absolute; inset:auto -40px -70px -40px; height:130px; background:radial-gradient(circle,rgba(20,102,214,.13),transparent 62%)}
-.globe{font-size:70px; margin:6px 0 4px; filter:drop-shadow(0 8px 12px rgba(20,102,214,.18))}
+.hero:after{content:""; position:absolute; inset:auto -40px -70px -40px; height:130px; background:radial-gradient(circle,rgba(20,102,214,.13),transparent 62%); pointer-events:none; z-index:0}
+.hero > *{position:relative; z-index:1}.globe{font-size:70px; margin:6px 0 4px; filter:drop-shadow(0 8px 12px rgba(20,102,214,.18))}
 .hero p{margin:0 auto 18px; color:var(--muted); line-height:1.65; max-width:320px}
 .primary,.secondary,.danger,.text-btn{border:0;border-radius:16px;cursor:pointer;font-weight:800}
 .primary{background:linear-gradient(180deg,#2483ef,#1466d6); color:#fff; box-shadow:0 10px 22px rgba(20,102,214,.25); padding:14px 18px}
-.primary.big{width:100%; font-size:18px; padding:17px}
+.primary.big{display:block; width:100%; min-height:56px; font-size:18px; padding:17px}
 .primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 .secondary{background:#eef6ff;color:var(--blue); padding:12px 16px; border:1px solid #cfe3fb}
 .danger{background:#fff1f1;color:var(--red); padding:12px 16px; border:1px solid #ffd0d0}
