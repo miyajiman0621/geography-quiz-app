@@ -1,0 +1,10 @@
+{
+  "name": "地理一問一答",
+  "short_name": "地理一答",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f7fbff",
+  "theme_color": "#1466d6",
+  "description": "大学受験向け地理一問一答Webアプリ",
+  "icons": []
+}
