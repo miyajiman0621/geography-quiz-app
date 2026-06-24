@@ -299,12 +299,28 @@ function renderHome(root){
   $('#goalProgress').style.width = `${goal.pct}%`;
   $('#accuracy').textContent = `${s.accuracy}%`;
   $('#weakCount').textContent = `${s.weakIds.length}問`;
-  $$('[data-action]', root).forEach(btn => btn.addEventListener('click', handleHomeClick));
+  $$('[data-action]', root).forEach(btn => {
+    if(btn.dataset.action === 'start') bindStartControl(btn);
+    else btn.addEventListener('click', handleHomeClick);
+  });
+}
+function startHomeLearning(e){
+  if(e){ e.preventDefault(); e.stopPropagation(); }
+  if(state.screen !== 'home') return;
+  state.selectedGroup = null;
+  go('units');
+}
+function bindStartControl(el){
+  const activate = e => startHomeLearning(e);
+  el.addEventListener('click', activate);
+  el.addEventListener('pointerup', e => { if(e.pointerType !== 'mouse') activate(e); });
+  el.addEventListener('touchend', activate, {passive:false});
+  el.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' ') activate(e); });
 }
 function handleHomeClick(e){
   const a = e.target.closest('[data-action]')?.dataset.action;
   if(!a) return;
-  if(a==='start') { state.selectedGroup=null; go('units'); }
+  if(a==='start') startHomeLearning(e);
   if(a==='recommended') startQuiz('unit','地形');
   if(a==='units') { state.selectedGroup=null; go('units'); }
   if(a==='group') { state.selectedGroup=e.target.closest('[data-group]').dataset.group; go('units'); }

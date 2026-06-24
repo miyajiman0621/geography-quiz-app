@@ -1,4 +1,4 @@
-const CACHE = 'geography-quiz-app-v12-hero-tap-area';
+const CACHE = 'geography-quiz-app-v13-start-touch';
 const ASSETS = [
   './',
   './index.html',
