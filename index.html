@@ -14,7 +14,15 @@
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-TRETLQYNV');
+    const gaDebugMode = new URLSearchParams(window.location.search).get('ga_debug') === '1';
+    gtag('config', 'G-TRETLQYNV', gaDebugMode ? { debug_mode: true } : {});
+    if (gaDebugMode) {
+      gtag('event', 'ga_debug_check', {
+        debug_mode: true,
+        event_category: 'diagnostics',
+        event_label: 'manual_debug_url'
+      });
+    }
   </script>
 </head>
 <body>

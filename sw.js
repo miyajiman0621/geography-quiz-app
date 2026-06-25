@@ -1,4 +1,4 @@
-const CACHE = 'geography-quiz-app-v14-network-first';
+const CACHE = 'geography-quiz-app-v15-ga-debug';
 const ASSETS = [
   './',
   './index.html',
