@@ -206,8 +206,37 @@ function importStudyDataFile(file){
   };
   reader.readAsText(file);
 }
+const UNIT_SESSION_SIZE = 20;
+
 function questionsByUnit(unit){
   return QUESTIONS.filter(q => q.category === unit || q.unit === unit);
+}
+function randomItem(items){
+  return items[Math.floor(Math.random() * items.length)];
+}
+function explicitUnitSessionSets(qs){
+  const sets = new Map();
+  qs.forEach(q => {
+    const setName = q.sessionSet || q.quizSet || q.set;
+    if(!setName) return;
+    if(!sets.has(setName)) sets.set(setName, []);
+    sets.get(setName).push(q);
+  });
+  const values = [...sets.values()].filter(set => set.length > 0);
+  const assigned = values.reduce((sum, set) => sum + set.length, 0);
+  return values.length >= 2 && assigned === qs.length && values.every(set => set.length === UNIT_SESSION_SIZE) ? values : [];
+}
+function chunkedUnitSessionSets(qs){
+  if(qs.length < UNIT_SESSION_SIZE * 2 || qs.length % UNIT_SESSION_SIZE !== 0) return [];
+  return Array.from({length: qs.length / UNIT_SESSION_SIZE}, (_, index) =>
+    qs.slice(index * UNIT_SESSION_SIZE, (index + 1) * UNIT_SESSION_SIZE)
+  );
+}
+function unitSessionQuestions(unit){
+  const qs = questionsByUnit(unit);
+  const explicitSets = explicitUnitSessionSets(qs);
+  const sets = explicitSets.length ? explicitSets : chunkedUnitSessionSets(qs);
+  return sets.length ? randomItem(sets) : qs;
 }
 function questionsByLevel(level){
   return QUESTIONS.filter(q => q.level === level);
@@ -365,7 +394,7 @@ function startQuiz(mode, unit=null, customQueue=null){
   state.mode = mode; state.selectedUnit = unit || '地形';
   let q = customQueue;
   if(!q){
-    if(mode==='unit') q = questionsByUnit(unit);
+    if(mode==='unit') q = unitSessionQuestions(unit);
     if(mode==='level') q = questionsByLevel(unit);
     if(mode==='random') q = [...QUESTIONS].sort(()=>Math.random()-.5);
     if(mode==='weak') q = stats().weakIds.map(findQuestionById).filter(Boolean);
