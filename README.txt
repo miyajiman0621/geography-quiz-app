@@ -43,6 +43,9 @@ ZIPを展開し、index.html をブラウザで開くと起動します。
 categoryGroup と category は、既存の unit から自動補完されます。
 
 
+2026-06-25 追加更新10：
+・Service Workerを更新し、HTMLページはネットワーク優先で取得するように変更。
+・Google AnalyticsタグやUI修正が古いキャッシュに残り続けにくいように改善。
 2026-06-25 追加更新9：
 ・ホーム画面の「学習を始める」を専用のタップ領域に変更。
 ・clickだけでなくpointerup/touchendでも起動するようにし、スマホでの反応を強化。
