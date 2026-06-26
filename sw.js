@@ -1,4 +1,4 @@
-const CACHE = 'geography-quiz-app-v16-unit-session-sets';
+const CACHE = 'geography-quiz-app-v17-400-questions';
 const ASSETS = [
   './',
   './index.html',
