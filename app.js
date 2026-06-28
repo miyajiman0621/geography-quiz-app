@@ -68,17 +68,17 @@ function logUsage(type, detail={}){
       deviceId: anonymousDeviceId()
     };
     const body = JSON.stringify(payload);
-    if(navigator.sendBeacon){
-      const blob = new Blob([body], {type: 'text/plain;charset=UTF-8'});
-      if(navigator.sendBeacon(LOG_ENDPOINT, blob)) return;
-    }
     fetch(LOG_ENDPOINT, {
       method: 'POST',
       mode: 'no-cors',
-      headers: {'Content-Type': 'text/plain;charset=UTF-8'},
       body,
       keepalive: true
-    }).catch(() => {});
+    }).catch(() => {
+      if(navigator.sendBeacon){
+        const blob = new Blob([body], {type: 'text/plain;charset=UTF-8'});
+        navigator.sendBeacon(LOG_ENDPOINT, blob);
+      }
+    });
   } catch {}
 }
 function dateKey(date=new Date()){
