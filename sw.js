@@ -1,4 +1,4 @@
-const CACHE = 'geography-quiz-app-v19-log-cache-bust';
+const CACHE = 'geography-quiz-app-v20-image-logging';
 const ASSETS = [
   './',
   './index.html',

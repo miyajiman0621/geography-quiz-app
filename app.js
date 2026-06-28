@@ -4,6 +4,7 @@ const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 const STORAGE_KEY = 'geographyQuizApp.v2';
 const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycby7H7Co9ssRTBZibkZFLYpL3Ns0ZEpYjIP52S4aaM4-wbvKIbnfSgZ_O7-vGEaYex2n/exec';
 const LOG_DEVICE_KEY = 'geographyQuizApp.anonymousDeviceId.v1';
+const pendingLogPixels = [];
 const UNITS = ['地形','気候','農業','工業','資源・エネルギー','人口・都市','交通・通信・貿易','国家・民族・宗教','地誌','地図問題'];
 const UNIT_ICONS = {'地形':'⛰️','気候':'🌤️','農業':'🌱','工業':'🏭','資源・エネルギー':'⚡','人口・都市':'👥','交通・通信・貿易':'🚢','国家・民族・宗教':'🕌','地誌':'🌏','地図問題':'🗾'};
 const CATEGORY_GROUPS = [
@@ -65,20 +66,21 @@ function logUsage(type, detail={}){
       unit: detail.unit || state?.selectedUnit || '',
       questionId: detail.questionId || '',
       judge: detail.judge || '',
-      deviceId: anonymousDeviceId()
+      deviceId: anonymousDeviceId(),
+      v: '20',
+      t: Date.now()
     };
-    const body = JSON.stringify(payload);
-    fetch(LOG_ENDPOINT, {
-      method: 'POST',
-      mode: 'no-cors',
-      body,
-      keepalive: true
-    }).catch(() => {
-      if(navigator.sendBeacon){
-        const blob = new Blob([body], {type: 'text/plain;charset=UTF-8'});
-        navigator.sendBeacon(LOG_ENDPOINT, blob);
-      }
-    });
+    const url = new URL(LOG_ENDPOINT);
+    Object.entries(payload).forEach(([key, value]) => url.searchParams.set(key, value));
+    const pixel = new Image();
+    pendingLogPixels.push(pixel);
+    const release = () => {
+      const index = pendingLogPixels.indexOf(pixel);
+      if(index >= 0) pendingLogPixels.splice(index, 1);
+    };
+    pixel.onload = release;
+    pixel.onerror = release;
+    pixel.src = url.toString();
   } catch {}
 }
 function dateKey(date=new Date()){
