@@ -2,6 +2,8 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
 const STORAGE_KEY = 'geographyQuizApp.v2';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycby7H7Co9ssRTBZibkZFLYpL3Ns0ZEpYjIP52S4aaM4-wbvKIbnfSgZ_O7-vGEaYex2n/exec';
+const LOG_DEVICE_KEY = 'geographyQuizApp.anonymousDeviceId.v1';
 const UNITS = ['地形','気候','農業','工業','資源・エネルギー','人口・都市','交通・通信・貿易','国家・民族・宗教','地誌','地図問題'];
 const UNIT_ICONS = {'地形':'⛰️','気候':'🌤️','農業':'🌱','工業':'🏭','資源・エネルギー':'⚡','人口・都市':'👥','交通・通信・貿易':'🚢','国家・民族・宗教':'🕌','地誌':'🌏','地図問題':'🗾'};
 const CATEGORY_GROUPS = [
@@ -41,6 +43,43 @@ function loadData(){
 function saveData(){
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data)); }
   catch { toast('学習記録を保存できませんでした'); }
+}
+function anonymousDeviceId(){
+  try {
+    let id = localStorage.getItem(LOG_DEVICE_KEY);
+    if(!id){
+      id = crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(LOG_DEVICE_KEY, id);
+    }
+    return id;
+  } catch {
+    return 'storage-disabled';
+  }
+}
+function logUsage(type, detail={}){
+  if(!LOG_ENDPOINT) return;
+  try {
+    const payload = {
+      type,
+      screen: detail.screen || state?.screen || '',
+      unit: detail.unit || state?.selectedUnit || '',
+      questionId: detail.questionId || '',
+      judge: detail.judge || '',
+      deviceId: anonymousDeviceId()
+    };
+    const body = JSON.stringify(payload);
+    if(navigator.sendBeacon){
+      const blob = new Blob([body], {type: 'text/plain;charset=UTF-8'});
+      if(navigator.sendBeacon(LOG_ENDPOINT, blob)) return;
+    }
+    fetch(LOG_ENDPOINT, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'text/plain;charset=UTF-8'},
+      body,
+      keepalive: true
+    }).catch(() => {});
+  } catch {}
 }
 function dateKey(date=new Date()){
   const y = date.getFullYear();
@@ -116,6 +155,7 @@ function recordStudy(q, status){
   writeDailyHistory();
   updateStreak();
   saveData();
+  logUsage('answer', {screen: state.screen, unit: q.unit, questionId: q.id, judge: status});
 }
 function updateStreak(){
   const today = todayKey();
@@ -401,6 +441,7 @@ function startQuiz(mode, unit=null, customQueue=null){
   }
   if(!q.length){ toast('対象の問題がまだありません'); return; }
   state.queue = q; state.currentIndex = 0; state.selectedChoice = null; state.revealed = false; state.hintVisible = false;
+  logUsage('start_quiz', {screen: 'quiz', unit: state.selectedUnit, questionId: q[0]?.id || '', judge: mode});
   go('quiz');
 }
 function currentQuestion(){ return state.queue[state.currentIndex]; }
@@ -629,3 +670,4 @@ $('#menuBtn').addEventListener('click', ()=>go('settings'));
 
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{})); }
 render();
+logUsage('open', {screen: state.screen});
