@@ -125,7 +125,7 @@ function setTitle(title, eyebrow='大学受験対策'){
 }
 function navForScreen(screen){
   if(['home','search'].includes(screen)) return 'home';
-  if(['units','difficulty','quiz'].includes(screen)) return 'units';
+  if(['units','unitLevel','difficulty','quiz'].includes(screen)) return 'units';
   if(screen === 'weak') return 'weak';
   if(screen === 'records') return 'records';
   if(screen === 'settings') return 'settings';
@@ -256,6 +256,22 @@ function questionsByUnit(unit){
 function randomItem(items){
   return items[Math.floor(Math.random() * items.length)];
 }
+function unitTierQuestions(unit, tier){
+  const qs = questionsByUnit(unit).filter(q => tier === 'intermediate' ? q.level === '中級' : q.level !== '中級');
+  const explicitSets = explicitUnitSessionSets(qs);
+  const sets = explicitSets.length ? explicitSets : chunkedUnitSessionSets(qs);
+  return sets.length ? randomItem(sets) : qs;
+}
+function hasUnitTierChoice(unit){
+  const qs = questionsByUnit(unit);
+  return qs.some(q => q.level === '中級') && qs.some(q => q.level !== '中級');
+}
+function unitTierProgress(unit, tier){
+  const qs = questionsByUnit(unit).filter(q => tier === 'intermediate' ? q.level === '中級' : q.level !== '中級');
+  const attempted = qs.filter(q=>state.data.answers[q.id]?.status).length;
+  const mastered = qs.filter(q=>state.data.answers[q.id]?.status === 'good').length;
+  return {total: qs.length, attempted, mastered, pct: qs.length ? Math.round(attempted/qs.length*100) : 0};
+}
 function explicitUnitSessionSets(qs){
   const sets = new Map();
   qs.forEach(q => {
@@ -351,6 +367,7 @@ function render(){
   screen.innerHTML = '';
   if(state.screen === 'home') renderHome(screen);
   if(state.screen === 'units') renderUnits(screen);
+  if(state.screen === 'unitLevel') renderUnitLevel(screen);
   if(state.screen === 'difficulty') renderDifficulty(screen);
   if(state.screen === 'quiz') renderQuiz(screen);
   if(state.screen === 'weak') renderWeak(screen);
@@ -430,13 +447,41 @@ function renderUnits(root){
   });
   root.append(wrap);
   $('[data-group-back]', root).addEventListener('click',()=>{state.selectedGroup=null; render();});
-  $$('.unit-card', root).forEach(btn => btn.addEventListener('click',()=>startQuiz('unit',btn.dataset.unit)));
+  $$('.unit-card', root).forEach(btn => btn.addEventListener('click',()=>selectUnitForQuiz(btn.dataset.unit)));
+}
+function selectUnitForQuiz(unit){
+  state.selectedUnit = unit;
+  if(hasUnitTierChoice(unit)) go('unitLevel');
+  else startQuiz('unit', unit);
+}
+function renderUnitLevel(root){
+  const unit = state.selectedUnit || '地形';
+  setTitle(unit, 'レベルを選ぶ');
+  const wrap = document.createElement('section');
+  wrap.className = 'level-list unit-level-list';
+  const tiers = [
+    {id:'basic', title:'初級編', description:'基礎・標準の確認', icon:'🌱'},
+    {id:'intermediate', title:'中級編', description:'因果関係を深める', icon:'⛰️'}
+  ];
+  tiers.forEach(tier => {
+    const p = unitTierProgress(unit, tier.id);
+    if(!p.total) return;
+    const card = document.createElement('button');
+    card.className = 'level-card unit-level-card';
+    card.dataset.tier = tier.id;
+    card.innerHTML = `<div class="level-icon">${tier.icon}</div><div><h3>${tier.title}</h3><p>${tier.description}・定着 ${p.mastered}問</p><div class="progress"><i style="width:${p.pct}%"></i></div></div><small>${p.attempted}/${p.total}問</small>`;
+    wrap.append(card);
+  });
+  root.append(wrap);
+  $$('.unit-level-card', root).forEach(btn => btn.addEventListener('click',()=>startQuiz(btn.dataset.tier === 'intermediate' ? 'unitIntermediate' : 'unitBasic', unit)));
 }
 function startQuiz(mode, unit=null, customQueue=null){
   state.mode = mode; state.selectedUnit = unit || '地形';
   let q = customQueue;
   if(!q){
     if(mode==='unit') q = unitSessionQuestions(unit);
+    if(mode==='unitBasic') q = unitTierQuestions(unit, 'basic');
+    if(mode==='unitIntermediate') q = unitTierQuestions(unit, 'intermediate');
     if(mode==='level') q = questionsByLevel(unit);
     if(mode==='random') q = [...QUESTIONS].sort(()=>Math.random()-.5);
     if(mode==='weak') q = stats().weakIds.map(findQuestionById).filter(Boolean);

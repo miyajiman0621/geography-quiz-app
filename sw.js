@@ -1,10 +1,10 @@
-const CACHE = 'geography-quiz-app-v21-natural-intermediate';
+const CACHE = 'geography-quiz-app-v22-unit-tier-choice';
 const ASSETS = [
   './',
   './index.html',
-  './style.css',
+  './style.css?v=22',
   './questions.js',
-  './app.js?v=21',
+  './app.js?v=22',
   './manifest.webmanifest',
   './data/questions-terrain.js?v=21',
   './data/questions-climate.js?v=21',
