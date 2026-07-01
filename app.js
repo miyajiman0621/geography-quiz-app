@@ -14,7 +14,7 @@ const CATEGORY_GROUPS = [
   {id:'map', title:'地図', icon:'🗾', description:'地形図・主題図・位置認識を反復します。', units:['地図問題']}
 ];
 const QUESTIONS = QUESTION_BANK;
-const LEVEL_ORDER = ['共通テスト基礎','共通テスト標準','私大・国公立基礎'];
+const LEVEL_ORDER = ['共通テスト基礎','共通テスト標準','中級','私大・国公立基礎'];
 
 const state = {
   screen: 'home', mode: 'unit', selectedUnit: '地形', selectedGroup: null, queue: [], currentIndex: 0,

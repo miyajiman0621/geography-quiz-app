@@ -1,13 +1,13 @@
-const CACHE = 'geography-quiz-app-v20-image-logging';
+const CACHE = 'geography-quiz-app-v21-natural-intermediate';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './questions.js',
-  './app.js',
+  './app.js?v=21',
   './manifest.webmanifest',
-  './data/questions-terrain.js',
-  './data/questions-climate.js',
+  './data/questions-terrain.js?v=21',
+  './data/questions-climate.js?v=21',
   './data/questions-agriculture.js',
   './data/questions-industry.js',
   './data/questions-resources-energy.js',
