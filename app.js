@@ -15,6 +15,18 @@ const CATEGORY_GROUPS = [
 ];
 const QUESTIONS = QUESTION_BANK;
 const LEVEL_ORDER = ['共通テスト基礎','共通テスト標準','中級','私大・国公立基礎'];
+const ROUTE_THEMES = {
+  '地形': {icon:'🥾', title:'等高線の山道を進む', checkpoints:['山麓','谷口','段丘面','山頂']},
+  '気候': {icon:'🌤️', title:'風と雲のルートを進む', checkpoints:['赤道付近','乾燥帯','温帯','高緯度']},
+  '農業': {icon:'🌱', title:'畑から市場へ進む', checkpoints:['畑','集荷所','市場','港']},
+  '工業': {icon:'🚆', title:'工業地帯を結ぶ', checkpoints:['原料','工場','輸送','市場']},
+  '資源・エネルギー': {icon:'⚡', title:'資源ルートをたどる', checkpoints:['鉱山','油田','発電所','都市']},
+  '人口・都市': {icon:'🏙️', title:'都市の階層をたどる', checkpoints:['村落','地方都市','大都市','都市圏']},
+  '交通・通信・貿易': {icon:'🚢', title:'物流ルートを進む', checkpoints:['港','航路','結節点','市場']},
+  '国家・民族・宗教': {icon:'🧭', title:'地域の境界をたどる', checkpoints:['国家','民族','言語','宗教']},
+  '地誌': {icon:'🌏', title:'世界の地域を巡る', checkpoints:['自然','産業','都市','地域性']},
+  '地図問題': {icon:'🗾', title:'地図上の地点を進む', checkpoints:['方位','縮尺','等高線','読図']}
+};
 
 const state = {
   screen: 'home', mode: 'unit', selectedUnit: '地形', selectedGroup: null, queue: [], currentIndex: 0,
@@ -67,7 +79,7 @@ function logUsage(type, detail={}){
       questionId: detail.questionId || '',
       judge: detail.judge || '',
       deviceId: anonymousDeviceId(),
-      v: '20',
+      v: '23',
       t: Date.now()
     };
     const url = new URL(LOG_ENDPOINT);
@@ -360,6 +372,47 @@ function unitAccuracy(unit){
   const attempts = totals.good + totals.mid + totals.bad;
   return {...totals, attempts, accuracy: attempts ? Math.round(totals.good / attempts * 100) : 0};
 }
+function shouldShowQuizRoute(){
+  return ['unit','unitBasic','unitIntermediate'].includes(state.mode) && state.queue.length >= 5 && state.queue.length <= UNIT_SESSION_SIZE;
+}
+function quizRouteTheme(unit){
+  return ROUTE_THEMES[unit] || {icon:'📍', title:'チェックポイントを進む', checkpoints:['1区','2区','3区','到達']};
+}
+function routeCheckpointCount(total){
+  return Math.min(4, Math.max(1, Math.ceil(total / 5)));
+}
+function routeCompletedCheckpoints(){
+  return Math.floor(state.currentIndex / 5);
+}
+function renderQuizRoute(root){
+  if(!shouldShowQuizRoute()) return;
+  const total = state.queue.length;
+  const current = state.currentIndex + 1;
+  const travelPct = total > 1 ? Math.round((state.currentIndex / (total - 1)) * 100) : 100;
+  const checkpointCount = routeCheckpointCount(total);
+  const completed = routeCompletedCheckpoints();
+  const theme = quizRouteTheme(currentQuestion()?.unit || state.selectedUnit);
+  const checkpoints = Array.from({length: checkpointCount}, (_, index) => {
+    const checkpointQuestion = Math.min((index + 1) * 5, total);
+    const left = Math.round((checkpointQuestion - 1) / Math.max(total - 1, 1) * 100);
+    const label = theme.checkpoints[index] || `${checkpointQuestion}問`;
+    const stateClass = index < completed ? 'done' : index === completed ? 'current' : '';
+    return `<span class="route-checkpoint ${stateClass}" style="left:${left}%"><b>${checkpointQuestion}</b><small>${label}</small></span>`;
+  }).join('');
+  const section = document.createElement('section');
+  section.className = 'card quiz-route-card';
+  section.innerHTML = `
+    <div class="route-head">
+      <div><b>${theme.title}</b><small>5問ごとに小さな到達地点があります</small></div>
+      <span class="route-count">${current}/${total}</span>
+    </div>
+    <div class="route-line-wrap">
+      <div class="route-line"><i style="width:${travelPct}%"></i></div>
+      <div class="route-traveler" style="left:${travelPct}%"><span>${theme.icon}</span></div>
+      <div class="route-checkpoints">${checkpoints}</div>
+    </div>`;
+  root.append(section);
+}
 
 function render(){
   ensureToday();
@@ -495,6 +548,7 @@ function currentQuestion(){ return state.queue[state.currentIndex]; }
 function renderQuiz(root){
   const q = currentQuestion();
   setTitle(q.unit, `${state.currentIndex+1}/${state.queue.length}問　${q.level}`);
+  renderQuizRoute(root);
   const card = document.createElement('section'); card.className='card quiz-card';
   const pct = Math.round(((state.currentIndex+1)/state.queue.length)*100);
   card.innerHTML = `<div class="meta"><span>Q</span><span>${state.currentIndex+1}/${state.queue.length}</span></div><div class="progress"><i style="width:${pct}%"></i></div><p class="question-text">${q.question}</p><div class="choices"></div><button class="hint-toggle" data-quiz="hint" aria-expanded="${state.hintVisible}">💡 ${state.hintVisible?'ヒントを隠す':'ヒントを見る'}</button><div class="hint ${state.hintVisible?'':'hidden'}">ヒント：${q.hint}</div><div class="action-row"><button class="secondary" data-quiz="prev">前へ</button><button class="primary" data-quiz="reveal">答えを見る</button></div>`;
