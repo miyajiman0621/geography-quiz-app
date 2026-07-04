@@ -1,13 +1,13 @@
-const CACHE = 'geography-quiz-app-v23-route-progress';
+const CACHE = 'geography-quiz-app-v24-advanced-reading';
 const ASSETS = [
   './',
   './index.html',
-  './style.css?v=23',
+  './style.css?v=24',
   './questions.js',
-  './app.js?v=23',
+  './app.js?v=24',
   './manifest.webmanifest',
-  './data/questions-terrain.js?v=21',
-  './data/questions-climate.js?v=21',
+  './data/questions-terrain.js?v=24',
+  './data/questions-climate.js?v=24',
   './data/questions-agriculture.js',
   './data/questions-industry.js',
   './data/questions-resources-energy.js',

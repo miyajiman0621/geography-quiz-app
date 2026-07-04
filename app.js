@@ -14,7 +14,7 @@ const CATEGORY_GROUPS = [
   {id:'map', title:'地図', icon:'🗾', description:'地形図・主題図・位置認識を反復します。', units:['地図問題']}
 ];
 const QUESTIONS = QUESTION_BANK;
-const LEVEL_ORDER = ['共通テスト基礎','共通テスト標準','中級','私大・国公立基礎'];
+const LEVEL_ORDER = ['共通テスト基礎','共通テスト標準','中級','入試実践','私大・国公立基礎'];
 const ROUTE_THEMES = {
   '地形': {icon:'🥾', title:'等高線の山道を進む', checkpoints:['山麓','谷口','段丘面','山頂']},
   '気候': {icon:'🌤️', title:'風と雲のルートを進む', checkpoints:['赤道付近','乾燥帯','温帯','高緯度']},
@@ -79,7 +79,7 @@ function logUsage(type, detail={}){
       questionId: detail.questionId || '',
       judge: detail.judge || '',
       deviceId: anonymousDeviceId(),
-      v: '23',
+      v: '24',
       t: Date.now()
     };
     const url = new URL(LOG_ENDPOINT);
@@ -268,18 +268,26 @@ function questionsByUnit(unit){
 function randomItem(items){
   return items[Math.floor(Math.random() * items.length)];
 }
+function questionsByUnitTier(unit, tier){
+  return questionsByUnit(unit).filter(q => {
+    if(tier === 'intermediate') return q.level === '中級';
+    if(tier === 'advanced') return q.level === '入試実践';
+    return q.level !== '中級' && q.level !== '入試実践';
+  });
+}
 function unitTierQuestions(unit, tier){
-  const qs = questionsByUnit(unit).filter(q => tier === 'intermediate' ? q.level === '中級' : q.level !== '中級');
+  const qs = questionsByUnitTier(unit, tier);
   const explicitSets = explicitUnitSessionSets(qs);
   const sets = explicitSets.length ? explicitSets : chunkedUnitSessionSets(qs);
   return sets.length ? randomItem(sets) : qs;
 }
 function hasUnitTierChoice(unit){
-  const qs = questionsByUnit(unit);
-  return qs.some(q => q.level === '中級') && qs.some(q => q.level !== '中級');
+  return ['basic', 'intermediate', 'advanced']
+    .filter(tier => questionsByUnitTier(unit, tier).length > 0)
+    .length > 1;
 }
 function unitTierProgress(unit, tier){
-  const qs = questionsByUnit(unit).filter(q => tier === 'intermediate' ? q.level === '中級' : q.level !== '中級');
+  const qs = questionsByUnitTier(unit, tier);
   const attempted = qs.filter(q=>state.data.answers[q.id]?.status).length;
   const mastered = qs.filter(q=>state.data.answers[q.id]?.status === 'good').length;
   return {total: qs.length, attempted, mastered, pct: qs.length ? Math.round(attempted/qs.length*100) : 0};
@@ -373,7 +381,7 @@ function unitAccuracy(unit){
   return {...totals, attempts, accuracy: attempts ? Math.round(totals.good / attempts * 100) : 0};
 }
 function shouldShowQuizRoute(){
-  return ['unit','unitBasic','unitIntermediate'].includes(state.mode) && state.queue.length >= 5 && state.queue.length <= UNIT_SESSION_SIZE;
+  return ['unit','unitBasic','unitIntermediate','unitAdvanced'].includes(state.mode) && state.queue.length >= 5 && state.queue.length <= UNIT_SESSION_SIZE;
 }
 function quizRouteTheme(unit){
   return ROUTE_THEMES[unit] || {icon:'📍', title:'チェックポイントを進む', checkpoints:['1区','2区','3区','到達']};
@@ -462,7 +470,7 @@ function handleHomeClick(e){
   const a = e.target.closest('[data-action]')?.dataset.action;
   if(!a) return;
   if(a==='start') startHomeLearning(e);
-  if(a==='recommended') startQuiz('unit','地形');
+  if(a==='recommended') selectUnitForQuiz('地形');
   if(a==='units') { state.selectedGroup=null; go('units'); }
   if(a==='group') { state.selectedGroup=e.target.closest('[data-group]').dataset.group; go('units'); }
   if(a==='random') startQuiz('random');
@@ -514,7 +522,8 @@ function renderUnitLevel(root){
   wrap.className = 'level-list unit-level-list';
   const tiers = [
     {id:'basic', title:'初級編', description:'基礎・標準の確認', icon:'🌱'},
-    {id:'intermediate', title:'中級編', description:'因果関係を深める', icon:'⛰️'}
+    {id:'intermediate', title:'中級編', description:'因果関係を深める', icon:'⛰️'},
+    {id:'advanced', title:'入試実践編', description:'文章資料を読み切る', icon:'🎓'}
   ];
   tiers.forEach(tier => {
     const p = unitTierProgress(unit, tier.id);
@@ -526,7 +535,8 @@ function renderUnitLevel(root){
     wrap.append(card);
   });
   root.append(wrap);
-  $$('.unit-level-card', root).forEach(btn => btn.addEventListener('click',()=>startQuiz(btn.dataset.tier === 'intermediate' ? 'unitIntermediate' : 'unitBasic', unit)));
+  const modeByTier = {basic: 'unitBasic', intermediate: 'unitIntermediate', advanced: 'unitAdvanced'};
+  $$('.unit-level-card', root).forEach(btn => btn.addEventListener('click',()=>startQuiz(modeByTier[btn.dataset.tier] || 'unitBasic', unit)));
 }
 function startQuiz(mode, unit=null, customQueue=null){
   state.mode = mode; state.selectedUnit = unit || '地形';
@@ -535,6 +545,7 @@ function startQuiz(mode, unit=null, customQueue=null){
     if(mode==='unit') q = unitSessionQuestions(unit);
     if(mode==='unitBasic') q = unitTierQuestions(unit, 'basic');
     if(mode==='unitIntermediate') q = unitTierQuestions(unit, 'intermediate');
+    if(mode==='unitAdvanced') q = unitTierQuestions(unit, 'advanced');
     if(mode==='level') q = questionsByLevel(unit);
     if(mode==='random') q = [...QUESTIONS].sort(()=>Math.random()-.5);
     if(mode==='weak') q = stats().weakIds.map(findQuestionById).filter(Boolean);
