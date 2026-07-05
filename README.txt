@@ -1,9 +1,9 @@
-地理一問一答アプリ 720問版
+地理一問一答アプリ 740問版
 
 大学受験地理の反復学習用Webアプリです。
 ZIPを展開し、index.html をブラウザで開くと起動します。
 
-収録問題数：720問
+収録問題数：740問
 単元構成：
 ・地形 80問
 ・気候 80問
@@ -13,7 +13,7 @@ ZIPを展開し、index.html をブラウザで開くと起動します。
 ・人口・都市 80問
 ・交通・通信・貿易 80問
 ・国家・民族・宗教 80問
-・地誌 40問
+・地誌 60問
 ・地図問題 40問
 
 主な機能：
@@ -42,6 +42,10 @@ ZIPを展開し、index.html をブラウザで開くと起動します。
 各問題は id, categoryGroup, category, unit, type, level, question, choices, answer, explanation, hint, tags, reviewPoint を持ちます。
 categoryGroup と category は、既存の unit から自動補完されます。
 
+2026-07-06 追加更新21：
+・地誌に「中級」レベルを20問追加。
+・地誌中級20問は data/questions-regional-intermediate.js にまとめ、既存の地誌40問と分けて管理できるようにした。
+・総問題数を740問に更新。
 2026-07-05 追加更新20：
 ・人文地理6分野に「入試実践」レベルを各20問追加。
 ・人文入試実践120問は data/questions-human-advanced.js にまとめ、各問題の unit で単元別に分類されるようにした。

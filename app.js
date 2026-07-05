@@ -79,7 +79,7 @@ function logUsage(type, detail={}){
       questionId: detail.questionId || '',
       judge: detail.judge || '',
       deviceId: anonymousDeviceId(),
-      v: '26',
+      v: '27',
       t: Date.now()
     };
     const url = new URL(LOG_ENDPOINT);
