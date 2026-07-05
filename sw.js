@@ -1,10 +1,10 @@
-const CACHE = 'geography-quiz-app-v24-advanced-reading';
+const CACHE = 'geography-quiz-app-v25-human-intermediate';
 const ASSETS = [
   './',
   './index.html',
-  './style.css?v=24',
+  './style.css?v=25',
   './questions.js',
-  './app.js?v=24',
+  './app.js?v=25',
   './manifest.webmanifest',
   './data/questions-terrain.js?v=24',
   './data/questions-climate.js?v=24',
@@ -15,7 +15,8 @@ const ASSETS = [
   './data/questions-transport-trade.js',
   './data/questions-state-ethnicity-religion.js',
   './data/questions-regional.js',
-  './data/questions-map.js'
+  './data/questions-map.js',
+  './data/questions-human-intermediate.js?v=25'
 ];
 
 self.addEventListener('install', event => {
