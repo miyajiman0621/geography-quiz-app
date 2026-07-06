@@ -1,13 +1,13 @@
-const CACHE = 'geography-quiz-app-v27-regional-intermediate';
+const CACHE = 'geography-quiz-app-v28-intermediate-answer-balance';
 const ASSETS = [
   './',
   './index.html',
-  './style.css?v=27',
+  './style.css?v=28',
   './questions.js',
-  './app.js?v=27',
+  './app.js?v=28',
   './manifest.webmanifest',
-  './data/questions-terrain.js?v=24',
-  './data/questions-climate.js?v=24',
+  './data/questions-terrain.js?v=28',
+  './data/questions-climate.js?v=28',
   './data/questions-agriculture.js',
   './data/questions-industry.js',
   './data/questions-resources-energy.js',
@@ -17,7 +17,7 @@ const ASSETS = [
   './data/questions-regional.js',
   './data/questions-regional-intermediate.js?v=27',
   './data/questions-map.js',
-  './data/questions-human-intermediate.js?v=25',
+  './data/questions-human-intermediate.js?v=28',
   './data/questions-human-advanced.js?v=26'
 ];
 

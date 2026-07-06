@@ -42,6 +42,10 @@ ZIPを展開し、index.html をブラウザで開くと起動します。
 各問題は id, categoryGroup, category, unit, type, level, question, choices, answer, explanation, hint, tags, reviewPoint を持ちます。
 categoryGroup と category は、既存の unit から自動補完されます。
 
+2026-07-06 追加更新22：
+・地形中級20問の正答選択肢がAに偏っていたため修正。
+・同じ偏りが残っていた気候中級20問・人文中級120問もあわせて修正し、中級は各単元A/B/C/Dに5問ずつ分散するようにした。
+・地形・気候・人文中級データの読み込みバージョンを v28 に更新し、古いキャッシュが残りにくいようにした。
 2026-07-06 追加更新21：
 ・地誌に「中級」レベルを20問追加。
 ・地誌中級20問は data/questions-regional-intermediate.js にまとめ、既存の地誌40問と分けて管理できるようにした。
