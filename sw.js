@@ -1,24 +1,24 @@
-const CACHE = 'geography-quiz-app-v28-intermediate-answer-balance';
+const CACHE = 'geography-quiz-app-v29-answer-balance-all';
 const ASSETS = [
   './',
   './index.html',
-  './style.css?v=28',
+  './style.css?v=29',
   './questions.js',
-  './app.js?v=28',
+  './app.js?v=29',
   './manifest.webmanifest',
-  './data/questions-terrain.js?v=28',
-  './data/questions-climate.js?v=28',
-  './data/questions-agriculture.js',
-  './data/questions-industry.js',
-  './data/questions-resources-energy.js',
-  './data/questions-population-city.js',
-  './data/questions-transport-trade.js',
-  './data/questions-state-ethnicity-religion.js',
-  './data/questions-regional.js',
-  './data/questions-regional-intermediate.js?v=27',
-  './data/questions-map.js',
-  './data/questions-human-intermediate.js?v=28',
-  './data/questions-human-advanced.js?v=26'
+  './data/questions-terrain.js?v=29',
+  './data/questions-climate.js?v=29',
+  './data/questions-agriculture.js?v=29',
+  './data/questions-industry.js?v=29',
+  './data/questions-resources-energy.js?v=29',
+  './data/questions-population-city.js?v=29',
+  './data/questions-transport-trade.js?v=29',
+  './data/questions-state-ethnicity-religion.js?v=29',
+  './data/questions-regional.js?v=29',
+  './data/questions-regional-intermediate.js?v=29',
+  './data/questions-map.js?v=29',
+  './data/questions-human-intermediate.js?v=29',
+  './data/questions-human-advanced.js?v=29'
 ];
 
 self.addEventListener('install', event => {
