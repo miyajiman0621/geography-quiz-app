@@ -15,6 +15,11 @@ const CATEGORY_GROUPS = [
 ];
 const QUESTIONS = QUESTION_BANK;
 const LEVEL_ORDER = ['共通テスト基礎','共通テスト標準','中級','入試実践','私大・国公立基礎'];
+const UNIT_TIERS = [
+  {id:'basic', title:'初級編', short:'初級', description:'基礎・標準の確認', icon:'🌱'},
+  {id:'intermediate', title:'中級編', short:'中級', description:'因果関係を深める', icon:'⛰️'},
+  {id:'advanced', title:'入試実践編', short:'実践', description:'文章資料を読み切る', icon:'🎓'}
+];
 const ROUTE_THEMES = {
   '地形': {icon:'🥾', title:'等高線の山道を進む', checkpoints:['山麓','谷口','段丘面','山頂']},
   '気候': {icon:'🌤️', title:'風と雲のルートを進む', checkpoints:['赤道付近','乾燥帯','温帯','高緯度']},
@@ -32,6 +37,7 @@ const state = {
   screen: 'home', mode: 'unit', selectedUnit: '地形', selectedGroup: null, queue: [], currentIndex: 0,
   selectedChoice: null, revealed: false, hintVisible: false, history: ['home'],
   searchQuery: '', selectedTag: null, searchComposing: false,
+  sessionResults: [], completedSession: null,
   data: loadData()
 };
 
@@ -72,14 +78,16 @@ function anonymousDeviceId(){
 function logUsage(type, detail={}){
   if(!LOG_ENDPOINT) return;
   try {
+    const question = detail.question || findQuestionById(detail.questionId);
     const payload = {
       type,
       screen: detail.screen || state?.screen || '',
       unit: detail.unit || state?.selectedUnit || '',
       questionId: detail.questionId || '',
+      level: detail.level || question?.level || '',
       judge: detail.judge || '',
       deviceId: anonymousDeviceId(),
-      v: '29',
+      v: '32',
       t: Date.now()
     };
     const url = new URL(LOG_ENDPOINT);
@@ -137,7 +145,7 @@ function setTitle(title, eyebrow='大学受験対策'){
 }
 function navForScreen(screen){
   if(['home','search'].includes(screen)) return 'home';
-  if(['units','unitLevel','difficulty','quiz'].includes(screen)) return 'units';
+  if(['units','unitLevel','difficulty','quiz','quizComplete'].includes(screen)) return 'units';
   if(screen === 'weak') return 'weak';
   if(screen === 'records') return 'records';
   if(screen === 'settings') return 'settings';
@@ -165,11 +173,15 @@ function recordStudy(q, status){
   rec.status = status;
   rec.last = new Date().toISOString();
   state.data.answers[q.id] = rec;
+  const sessionResult = {id: q.id, unit: q.unit, level: q.level, status};
+  const sessionIndex = state.sessionResults.findIndex(item => item.id === q.id);
+  if(sessionIndex >= 0) state.sessionResults[sessionIndex] = sessionResult;
+  else state.sessionResults.push(sessionResult);
   state.data.todayCount += 1;
   writeDailyHistory();
   updateStreak();
   saveData();
-  logUsage('answer', {screen: state.screen, unit: q.unit, questionId: q.id, judge: status});
+  logUsage('answer', {screen: state.screen, unit: q.unit, questionId: q.id, level: q.level, judge: status});
 }
 function updateStreak(){
   const today = todayKey();
@@ -275,6 +287,9 @@ function questionsByUnitTier(unit, tier){
     return q.level !== '中級' && q.level !== '入試実践';
   });
 }
+function availableUnitTiers(unit){
+  return UNIT_TIERS.filter(tier => questionsByUnitTier(unit, tier.id).length > 0);
+}
 function unitTierQuestions(unit, tier){
   const qs = questionsByUnitTier(unit, tier);
   const explicitSets = explicitUnitSessionSets(qs);
@@ -282,9 +297,7 @@ function unitTierQuestions(unit, tier){
   return sets.length ? randomItem(sets) : qs;
 }
 function hasUnitTierChoice(unit){
-  return ['basic', 'intermediate', 'advanced']
-    .filter(tier => questionsByUnitTier(unit, tier).length > 0)
-    .length > 1;
+  return availableUnitTiers(unit).length > 1;
 }
 function unitTierProgress(unit, tier){
   const qs = questionsByUnitTier(unit, tier);
@@ -318,6 +331,25 @@ function unitSessionQuestions(unit){
 }
 function questionsByLevel(level){
   return QUESTIONS.filter(q => q.level === level);
+}
+function tierById(id){
+  return UNIT_TIERS.find(tier => tier.id === id);
+}
+function tierFromMode(mode){
+  if(mode === 'unitIntermediate') return 'intermediate';
+  if(mode === 'unitAdvanced') return 'advanced';
+  if(mode === 'unit' || mode === 'unitBasic') return 'basic';
+  return null;
+}
+function modeForTier(tier){
+  if(tier === 'intermediate') return 'unitIntermediate';
+  if(tier === 'advanced') return 'unitAdvanced';
+  return 'unitBasic';
+}
+function nextAvailableTier(unit, currentTier){
+  const tiers = availableUnitTiers(unit).map(tier => tier.id);
+  const currentIndex = UNIT_TIERS.findIndex(tier => tier.id === currentTier);
+  return tiers.find(tier => UNIT_TIERS.findIndex(item => item.id === tier) > currentIndex) || null;
 }
 function findQuestionById(id){
   return QUESTIONS.find(q => q.id === id);
@@ -368,6 +400,18 @@ function levelProgress(level){
   const mastered = qs.filter(q=>state.data.answers[q.id]?.status === 'good').length;
   return {total: qs.length, attempted, mastered, pct: qs.length ? Math.round(attempted/qs.length*100) : 0};
 }
+function levelAccuracy(level){
+  const qs = questionsByLevel(level);
+  const totals = qs.reduce((acc,q)=>{
+    const rec = answered(q);
+    acc.good += rec.correct || 0;
+    acc.mid += rec.mid || 0;
+    acc.bad += rec.wrong || 0;
+    return acc;
+  }, {good:0, mid:0, bad:0});
+  const attempts = totals.good + totals.mid + totals.bad;
+  return {...totals, attempts, accuracy: attempts ? Math.round(totals.good / attempts * 100) : 0};
+}
 function unitAccuracy(unit){
   const qs = questionsByUnit(unit);
   const totals = qs.reduce((acc,q)=>{
@@ -379,6 +423,58 @@ function unitAccuracy(unit){
   }, {good:0, mid:0, bad:0});
   const attempts = totals.good + totals.mid + totals.bad;
   return {...totals, attempts, accuracy: attempts ? Math.round(totals.good / attempts * 100) : 0};
+}
+function learningRecommendation(){
+  const s = stats();
+  if(s.weakIds.length >= 5){
+    return {
+      text: `復習待ちが${s.weakIds.length}問あります。今日は短く苦手復習から始めるのがよさそうです。`,
+      button: '苦手を復習する',
+      type: 'weak'
+    };
+  }
+  for(const unit of UNITS){
+    const basic = unitTierProgress(unit, 'basic');
+    const intermediate = unitTierProgress(unit, 'intermediate');
+    if(basic.attempted >= Math.min(20, basic.total) && intermediate.total && intermediate.attempted === 0){
+      return {
+        text: `「${unit}」の初級が進んでいます。次は中級編で因果関係まで確認します。`,
+        button: `${unit} 中級編へ`,
+        type: 'tier',
+        unit,
+        tier: 'intermediate'
+      };
+    }
+    const advanced = unitTierProgress(unit, 'advanced');
+    if(intermediate.total && intermediate.attempted >= Math.min(20, intermediate.total) && advanced.total && advanced.attempted === 0){
+      return {
+        text: `「${unit}」の中級まで進んでいます。入試実践編で文章読解型に進みます。`,
+        button: `${unit} 入試実践編へ`,
+        type: 'tier',
+        unit,
+        tier: 'advanced'
+      };
+    }
+  }
+  const nextUnit = UNITS.find(unit => unitProgress(unit).attempted === 0) || '地形';
+  return {
+    text: `次は「${nextUnit}」を進めると、単元の偏りを少しならせます。`,
+    button: `${nextUnit}を解く`,
+    type: 'unit',
+    unit: nextUnit
+  };
+}
+function startRecommendedLearning(){
+  const rec = learningRecommendation();
+  if(rec.type === 'weak'){
+    go('weak');
+    return;
+  }
+  if(rec.type === 'tier'){
+    startQuiz(modeForTier(rec.tier), rec.unit);
+    return;
+  }
+  selectUnitForQuiz(rec.unit || '地形');
 }
 function shouldShowQuizRoute(){
   return ['unit','unitBasic','unitIntermediate','unitAdvanced'].includes(state.mode) && state.queue.length >= 5 && state.queue.length <= UNIT_SESSION_SIZE;
@@ -431,6 +527,7 @@ function render(){
   if(state.screen === 'unitLevel') renderUnitLevel(screen);
   if(state.screen === 'difficulty') renderDifficulty(screen);
   if(state.screen === 'quiz') renderQuiz(screen);
+  if(state.screen === 'quizComplete') renderQuizComplete(screen);
   if(state.screen === 'weak') renderWeak(screen);
   if(state.screen === 'search') renderSearch(screen);
   if(state.screen === 'records') renderRecords(screen);
@@ -448,6 +545,9 @@ function renderHome(root){
   $('#goalProgress').style.width = `${goal.pct}%`;
   $('#accuracy').textContent = `${s.accuracy}%`;
   $('#weakCount').textContent = `${s.weakIds.length}問`;
+  const recommendation = learningRecommendation();
+  $('#recommendText').textContent = recommendation.text;
+  $('[data-action="recommended"]', root).textContent = recommendation.button;
   $$('[data-action]', root).forEach(btn => {
     if(btn.dataset.action === 'start') bindStartControl(btn);
     else btn.addEventListener('click', handleHomeClick);
@@ -470,7 +570,7 @@ function handleHomeClick(e){
   const a = e.target.closest('[data-action]')?.dataset.action;
   if(!a) return;
   if(a==='start') startHomeLearning(e);
-  if(a==='recommended') selectUnitForQuiz('地形');
+  if(a==='recommended') startRecommendedLearning();
   if(a==='units') { state.selectedGroup=null; go('units'); }
   if(a==='group') { state.selectedGroup=e.target.closest('[data-group]').dataset.group; go('units'); }
   if(a==='random') startQuiz('random');
@@ -502,8 +602,13 @@ function renderUnits(root){
   wrap.innerHTML = `<div class="pill-row"><button class="pill" data-group-back="1">目次へ</button><button class="pill active">${group.title}</button></div>`;
   group.units.forEach(unit=>{
     const p = unitProgress(unit);
+    const tierChips = availableUnitTiers(unit).map(tier => {
+      const tierProgress = unitTierProgress(unit, tier.id);
+      const cls = tierProgress.attempted >= tierProgress.total ? 'done' : tierProgress.attempted ? 'active' : '';
+      return `<span class="tier-chip ${cls}">${tier.short} ${tierProgress.attempted}/${tierProgress.total}</span>`;
+    }).join('');
     const card = document.createElement('button'); card.className='unit-card'; card.dataset.unit=unit;
-    card.innerHTML = `<div class="unit-icon">${UNIT_ICONS[unit]}</div><div><h3>${unit}</h3><p class="unit-meta">定着 ${p.mastered}問</p><div class="progress"><i style="width:${p.pct}%"></i></div></div><small>${p.attempted}/${p.total}問</small>`;
+    card.innerHTML = `<div class="unit-icon">${UNIT_ICONS[unit]}</div><div><h3>${unit}</h3><p class="unit-meta">定着 ${p.mastered}問</p><div class="progress"><i style="width:${p.pct}%"></i></div><div class="tier-chip-row">${tierChips}</div></div><small>${p.attempted}/${p.total}問</small>`;
     wrap.append(card);
   });
   root.append(wrap);
@@ -512,22 +617,15 @@ function renderUnits(root){
 }
 function selectUnitForQuiz(unit){
   state.selectedUnit = unit;
-  if(hasUnitTierChoice(unit)) go('unitLevel');
-  else startQuiz('unit', unit);
+  go('unitLevel');
 }
 function renderUnitLevel(root){
   const unit = state.selectedUnit || '地形';
   setTitle(unit, 'レベルを選ぶ');
   const wrap = document.createElement('section');
   wrap.className = 'level-list unit-level-list';
-  const tiers = [
-    {id:'basic', title:'初級編', description:'基礎・標準の確認', icon:'🌱'},
-    {id:'intermediate', title:'中級編', description:'因果関係を深める', icon:'⛰️'},
-    {id:'advanced', title:'入試実践編', description:'文章資料を読み切る', icon:'🎓'}
-  ];
-  tiers.forEach(tier => {
+  availableUnitTiers(unit).forEach(tier => {
     const p = unitTierProgress(unit, tier.id);
-    if(!p.total) return;
     const card = document.createElement('button');
     card.className = 'level-card unit-level-card';
     card.dataset.tier = tier.id;
@@ -535,11 +633,10 @@ function renderUnitLevel(root){
     wrap.append(card);
   });
   root.append(wrap);
-  const modeByTier = {basic: 'unitBasic', intermediate: 'unitIntermediate', advanced: 'unitAdvanced'};
-  $$('.unit-level-card', root).forEach(btn => btn.addEventListener('click',()=>startQuiz(modeByTier[btn.dataset.tier] || 'unitBasic', unit)));
+  $$('.unit-level-card', root).forEach(btn => btn.addEventListener('click',()=>startQuiz(modeForTier(btn.dataset.tier), unit)));
 }
 function startQuiz(mode, unit=null, customQueue=null){
-  state.mode = mode; state.selectedUnit = unit || '地形';
+  state.mode = mode;
   let q = customQueue;
   if(!q){
     if(mode==='unit') q = unitSessionQuestions(unit);
@@ -551,8 +648,10 @@ function startQuiz(mode, unit=null, customQueue=null){
     if(mode==='weak') q = stats().weakIds.map(findQuestionById).filter(Boolean);
   }
   if(!q.length){ toast('対象の問題がまだありません'); return; }
+  state.selectedUnit = unit && mode !== 'level' ? unit : q[0]?.unit || state.selectedUnit || '地形';
   state.queue = q; state.currentIndex = 0; state.selectedChoice = null; state.revealed = false; state.hintVisible = false;
-  logUsage('start_quiz', {screen: 'quiz', unit: state.selectedUnit, questionId: q[0]?.id || '', judge: mode});
+  state.sessionResults = []; state.completedSession = null;
+  logUsage('start_quiz', {screen: 'quiz', unit: state.selectedUnit, questionId: q[0]?.id || '', level: q[0]?.level || unit || '', judge: mode});
   go('quiz');
 }
 function currentQuestion(){ return state.queue[state.currentIndex]; }
@@ -593,10 +692,65 @@ function renderAnswer(root,q){
 }
 function nextQuestion(){
   if(state.currentIndex < state.queue.length-1){ state.currentIndex++; state.selectedChoice=null; state.revealed=false; state.hintVisible=false; render(); }
-  else { toast('このセットは完了です'); go('records'); }
+  else completeQuiz();
 }
 function prevQuestion(){
   if(state.currentIndex > 0){ state.currentIndex--; state.selectedChoice=null; state.revealed=false; state.hintVisible=false; render(); }
+}
+function completeQuiz(){
+  const q = currentQuestion();
+  state.completedSession = {
+    mode: state.mode,
+    unit: q?.unit || state.selectedUnit,
+    tier: tierFromMode(state.mode),
+    level: q?.level || '',
+    total: state.queue.length,
+    results: [...state.sessionResults]
+  };
+  logUsage('complete_quiz', {
+    screen: 'quizComplete',
+    unit: state.completedSession.unit,
+    level: state.completedSession.level,
+    judge: state.mode
+  });
+  toast('このセットは完了です');
+  go('quizComplete');
+}
+function renderQuizComplete(root){
+  const session = state.completedSession || {unit: state.selectedUnit, tier: null, total: state.queue.length, results: []};
+  const unit = session.unit || state.selectedUnit || '地形';
+  const tier = session.tier;
+  const tierInfo = tierById(tier);
+  const results = session.results || [];
+  const good = results.filter(item => item.status === 'good').length;
+  const mid = results.filter(item => item.status === 'mid').length;
+  const bad = results.filter(item => item.status === 'bad').length;
+  const nextTier = tier ? nextAvailableTier(unit, tier) : null;
+  setTitle('セット完了', unit);
+  const card = document.createElement('section');
+  card.className = 'card complete-card';
+  card.innerHTML = `
+    <div class="complete-mark">${UNIT_ICONS[unit] || '✓'}</div>
+    <h2>${unit}${tierInfo ? ` ${tierInfo.title}` : ''}</h2>
+    <div class="stats-row compact">
+      <div><small>記録</small><strong>${results.length}/${session.total || state.queue.length}</strong></div>
+      <div><small>できた</small><strong>${good}</strong></div>
+      <div><small>復習待ち</small><strong>${mid + bad}</strong></div>
+    </div>`;
+  const actions = document.createElement('section');
+  actions.className = 'card complete-actions';
+  const nextTierInfo = tierById(nextTier);
+  actions.innerHTML = `
+    ${nextTierInfo ? `<button class="primary" data-complete="next-tier">${nextTierInfo.title}へ進む</button>` : ''}
+    <button class="secondary" data-complete="same">同じレベルをもう一度</button>
+    <button class="secondary" data-complete="levels">レベル選択へ</button>
+    <button class="text-btn" data-complete="records">学習記録を見る</button>`;
+  root.append(card, actions);
+  const nextTierButton = $('[data-complete="next-tier"]', root);
+  if(nextTierButton) nextTierButton.addEventListener('click',()=>startQuiz(modeForTier(nextTier), unit));
+  $('[data-complete="same"]', root).addEventListener('click',()=>startQuiz(modeForTier(tier || 'basic'), unit));
+  $('[data-complete="levels"]', root).addEventListener('click',()=>{state.selectedUnit = unit; go('unitLevel');});
+  $('[data-complete="records"]', root).addEventListener('click',()=>go('records'));
 }
 function renderDifficulty(root){
   setTitle('難度別出題','レベルで選ぶ');
@@ -736,7 +890,17 @@ function renderRecords(root){
     div.innerHTML=`<div><b>${UNIT_ICONS[unit]} ${unit}</b><small>できた ${a.good}回 / 記録 ${a.attempts}回</small></div><strong>${label}</strong>`;
     accuracyList.append(div);
   });
-  root.append(card,stat,streak,history,bars,accuracy);
+  const levelStats=document.createElement('section'); levelStats.className='card';
+  levelStats.innerHTML='<h2>難度別正答率</h2><div class="accuracy-list"></div>';
+  const levelList=$('.accuracy-list', levelStats);
+  allLevels().forEach(level=>{
+    const a = levelAccuracy(level);
+    const div=document.createElement('div'); div.className='accuracy-item';
+    const label = a.attempts ? `${a.accuracy}%` : '未学習';
+    div.innerHTML=`<div><b>${level}</b><small>できた ${a.good}回 / 記録 ${a.attempts}回</small></div><strong>${label}</strong>`;
+    levelList.append(div);
+  });
+  root.append(card,stat,streak,history,bars,accuracy,levelStats);
 }
 function renderSettings(root){
   setTitle('設定','学習環境');
