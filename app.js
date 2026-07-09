@@ -2,7 +2,7 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
 const STORAGE_KEY = 'geographyQuizApp.v2';
-const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycby7H7Co9ssRTBZibkZFLYpL3Ns0ZEpYjIP52S4aaM4-wbvKIbnfSgZ_O7-vGEaYex2n/exec';
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzmJwSkcOe3dXcY2bLRNb8COI_DoEWHKSQM3Ve0g81-heQv4B9GaesW-o07urm6cbBP/exec';
 const LOG_DEVICE_KEY = 'geographyQuizApp.anonymousDeviceId.v1';
 const pendingLogPixels = [];
 const UNITS = ['地形','気候','農業','工業','資源・エネルギー','人口・都市','交通・通信・貿易','国家・民族・宗教','地誌','地図問題'];
@@ -88,7 +88,7 @@ function logUsage(type, detail={}){
       level: detail.level || question?.level || '',
       judge: detail.judge || '',
       deviceId: anonymousDeviceId(),
-      v: '33',
+      v: '34',
       t: Date.now()
     };
     const url = new URL(LOG_ENDPOINT);

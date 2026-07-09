@@ -42,6 +42,10 @@ ZIPを展開し、index.html をブラウザで開くと起動します。
 各問題は id, categoryGroup, category, unit, type, level, question, choices, answer, explanation, hint, tags, reviewPoint を持ちます。
 categoryGroup と category は、既存の unit から自動補完されます。
 
+2026-07-10 追加更新28：
+・Apps Scriptの新しいWebアプリURLに合わせて、利用ログの送信先を更新。
+・アプリ本体とサービスワーカーの読み込みバージョンを v34 に更新。
+
 2026-07-09 追加更新27：
 ・地形に「入試実践②」レベルを10問追加。
 ・入試実践②は、正誤判定問題で必要になる「位置・自然条件・人間活動・具体例」の接続を一問一答で確認する形式にした。
