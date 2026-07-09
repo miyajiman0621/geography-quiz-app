@@ -14,11 +14,12 @@ const CATEGORY_GROUPS = [
   {id:'map', title:'地図', icon:'🗾', description:'地形図・主題図・位置認識を反復します。', units:['地図問題']}
 ];
 const QUESTIONS = QUESTION_BANK;
-const LEVEL_ORDER = ['共通テスト基礎','共通テスト標準','中級','入試実践','私大・国公立基礎'];
+const LEVEL_ORDER = ['共通テスト基礎','共通テスト標準','中級','入試実践','入試実践②','私大・国公立基礎'];
 const UNIT_TIERS = [
   {id:'basic', title:'初級編', short:'初級', description:'基礎・標準の確認', icon:'🌱'},
   {id:'intermediate', title:'中級編', short:'中級', description:'因果関係を深める', icon:'⛰️'},
-  {id:'advanced', title:'入試実践編', short:'実践', description:'文章資料を読み切る', icon:'🎓'}
+  {id:'advanced', title:'入試実践編', short:'実践', description:'文章資料を読み切る', icon:'🎓'},
+  {id:'advanced2', title:'入試実践編②', short:'実践②', description:'正誤判定の連鎖を鍛える', icon:'🧭'}
 ];
 const ROUTE_THEMES = {
   '地形': {icon:'🥾', title:'等高線の山道を進む', checkpoints:['山麓','谷口','段丘面','山頂']},
@@ -87,7 +88,7 @@ function logUsage(type, detail={}){
       level: detail.level || question?.level || '',
       judge: detail.judge || '',
       deviceId: anonymousDeviceId(),
-      v: '32',
+      v: '33',
       t: Date.now()
     };
     const url = new URL(LOG_ENDPOINT);
@@ -284,7 +285,8 @@ function questionsByUnitTier(unit, tier){
   return questionsByUnit(unit).filter(q => {
     if(tier === 'intermediate') return q.level === '中級';
     if(tier === 'advanced') return q.level === '入試実践';
-    return q.level !== '中級' && q.level !== '入試実践';
+    if(tier === 'advanced2') return q.level === '入試実践②';
+    return q.level !== '中級' && q.level !== '入試実践' && q.level !== '入試実践②';
   });
 }
 function availableUnitTiers(unit){
@@ -338,12 +340,14 @@ function tierById(id){
 function tierFromMode(mode){
   if(mode === 'unitIntermediate') return 'intermediate';
   if(mode === 'unitAdvanced') return 'advanced';
+  if(mode === 'unitAdvanced2') return 'advanced2';
   if(mode === 'unit' || mode === 'unitBasic') return 'basic';
   return null;
 }
 function modeForTier(tier){
   if(tier === 'intermediate') return 'unitIntermediate';
   if(tier === 'advanced') return 'unitAdvanced';
+  if(tier === 'advanced2') return 'unitAdvanced2';
   return 'unitBasic';
 }
 function nextAvailableTier(unit, currentTier){
@@ -455,6 +459,16 @@ function learningRecommendation(){
         tier: 'advanced'
       };
     }
+    const advanced2 = unitTierProgress(unit, 'advanced2');
+    if(advanced.total && advanced.attempted >= Math.min(20, advanced.total) && advanced2.total && advanced2.attempted === 0){
+      return {
+        text: `「${unit}」の入試実践まで進んでいます。次は入試実践編②で正誤判定の連鎖を鍛えます。`,
+        button: `${unit} 入試実践編②へ`,
+        type: 'tier',
+        unit,
+        tier: 'advanced2'
+      };
+    }
   }
   const nextUnit = UNITS.find(unit => unitProgress(unit).attempted === 0) || '地形';
   return {
@@ -477,7 +491,7 @@ function startRecommendedLearning(){
   selectUnitForQuiz(rec.unit || '地形');
 }
 function shouldShowQuizRoute(){
-  return ['unit','unitBasic','unitIntermediate','unitAdvanced'].includes(state.mode) && state.queue.length >= 5 && state.queue.length <= UNIT_SESSION_SIZE;
+  return ['unit','unitBasic','unitIntermediate','unitAdvanced','unitAdvanced2'].includes(state.mode) && state.queue.length >= 5 && state.queue.length <= UNIT_SESSION_SIZE;
 }
 function quizRouteTheme(unit){
   return ROUTE_THEMES[unit] || {icon:'📍', title:'チェックポイントを進む', checkpoints:['1区','2区','3区','到達']};
@@ -643,6 +657,7 @@ function startQuiz(mode, unit=null, customQueue=null){
     if(mode==='unitBasic') q = unitTierQuestions(unit, 'basic');
     if(mode==='unitIntermediate') q = unitTierQuestions(unit, 'intermediate');
     if(mode==='unitAdvanced') q = unitTierQuestions(unit, 'advanced');
+    if(mode==='unitAdvanced2') q = unitTierQuestions(unit, 'advanced2');
     if(mode==='level') q = questionsByLevel(unit);
     if(mode==='random') q = [...QUESTIONS].sort(()=>Math.random()-.5);
     if(mode==='weak') q = stats().weakIds.map(findQuestionById).filter(Boolean);
